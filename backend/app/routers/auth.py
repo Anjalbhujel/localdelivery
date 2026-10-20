@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import AccountStatus, User
+from ..models import AccountStatus, RiderProfile, User, UserRole
 from ..schemas import Token, UserCreate, UserLogin, UserOut
 from ..security import create_access_token, get_current_user, hash_password, verify_password
 
@@ -20,9 +20,22 @@ def signup(data: UserCreate, db: Session = Depends(get_db)):
     user = User(
         full_name=data.full_name,
         email=email,
+        phone=data.phone,
         password_hash=hash_password(data.password),
+        role=UserRole(data.role),
     )
     db.add(user)
+
+    if data.role == "rider":
+        db.flush()
+        db.add(
+            RiderProfile(
+                user_id=user.id,
+                address=data.area,
+                vehicle_type=data.vehicle_type,
+            )
+        )
+
     db.commit()
     db.refresh(user)
     return user
