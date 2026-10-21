@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import AppHeader from "../components/AppHeader";
+import DeliveryRow, { Delivery, OPEN_STATUSES } from "../components/DeliveryRow";
+import { cancelDeliveryRequest, fetchDeliveries } from "../lib/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -23,53 +25,6 @@ type Stats = {
   delivered: number;
   total_spend: string;
 };
-
-type Status = "pending" | "accepted" | "picked_up" | "delivered" | "cancelled";
-
-type Delivery = {
-  id: number;
-  pickup_location: string;
-  drop_location: string;
-  package_details: string;
-  package_size: string;
-  status: Status;
-  created_at: string;
-  price: string;
-};
-
-const STATUS_STYLE: Record<Status, { label: string; badge: string }> = {
-  pending: {
-    label: "Waiting for a rider",
-    badge: "bg-amber-50 text-amber-800 ring-amber-200",
-  },
-  accepted: {
-    label: "Rider assigned",
-    badge: "bg-sky-50 text-sky-800 ring-sky-200",
-  },
-  picked_up: {
-    label: "On the way",
-    badge: "bg-teal-50 text-teal-800 ring-teal-200",
-  },
-  delivered: {
-    label: "Delivered",
-    badge: "bg-emerald-50 text-emerald-800 ring-emerald-200",
-  },
-  cancelled: {
-    label: "Cancelled",
-    badge: "bg-stone-100 text-slate-600 ring-stone-300",
-  },
-};
-
-const STEPS = ["Posted", "Accepted", "Picked up", "Delivered"];
-const STEP_INDEX: Record<Status, number> = {
-  pending: 0,
-  accepted: 1,
-  picked_up: 2,
-  delivered: 3,
-  cancelled: -1,
-};
-
-const OPEN_STATUSES: Status[] = ["pending", "accepted", "picked_up"];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -109,6 +64,28 @@ export default function DashboardPage() {
   function handleSignOut() {
     localStorage.removeItem("token");
     router.replace("/login");
+  }
+
+    async function cancelDelivery(id: number): Promise<string | null> {
+    const result = await cancelDeliveryRequest(id);
+
+    if (result.ok) {
+      setDeliveries(
+        (prev) =>
+          prev && prev.map((d) => (d.id === id ? { ...d, status: result.status } : d))
+      );
+      return null;
+    }
+
+    if (result.unauthorized) {
+      localStorage.removeItem("token");
+      router.replace("/login");
+      return null;
+    }
+
+    const latest = await fetchDeliveries();
+    if (latest) setDeliveries(latest);
+    return result.message;
   }
 
   if (!user) {
@@ -275,7 +252,7 @@ export default function DashboardPage() {
               ) : (
                 <ul className="divide-y divide-stone-200">
                   {shownList.map((d) => (
-                    <DeliveryRow key={d.id} delivery={d} />
+                    <DeliveryRow key={d.id} delivery={d} onCancel={cancelDelivery} />
                   ))}
                 </ul>
               )}
@@ -319,77 +296,14 @@ export default function DashboardPage() {
                 Sending something fragile?
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                Add handling notes to your request so the rider knows exactly
-                what they are carrying.
+                Say so in &quot;What&apos;s inside?&quot; so the rider knows
+                exactly what they are carrying.
               </p>
             </div>
           </aside>
         </div>
       </main>
     </div>
-  );
-}
-
-function DeliveryRow({ delivery: d }: { delivery: Delivery }) {
-  const style = STATUS_STYLE[d.status];
-  const isOpen = OPEN_STATUSES.includes(d.status);
-  const posted = new Date(d.created_at).toLocaleString(undefined, {
-    day: "numeric",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-  return (
-    <li className="px-5 py-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-slate-900">
-            {d.pickup_location} → {d.drop_location}
-          </p>
-          <p className="mt-0.5 truncate text-sm text-slate-500">
-            {d.package_details} ·{" "}
-            <span className="capitalize">{d.package_size}</span>
-          </p>
-        </div>
-        <div className="shrink-0 text-right">
-          <p className="text-sm font-semibold text-slate-900">
-            ${Number(d.price).toFixed(2)}
-          </p>
-          <span
-            className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${style.badge}`}
-          >
-            {style.label}
-          </span>
-        </div>
-      </div>
-      <p className="mt-1 text-xs text-slate-400">Posted {posted}</p>
-      {isOpen && <Progress status={d.status} />}
-    </li>
-  );
-}
-
-function Progress({ status }: { status: Status }) {
-  const current = STEP_INDEX[status];
-  return (
-    <ol className="mt-3 grid grid-cols-4 gap-1">
-      {STEPS.map((label, i) => (
-        <li key={label}>
-          <div
-            className={`h-1.5 rounded-full ${
-              i <= current ? "bg-teal-600" : "bg-stone-200"
-            }`}
-          />
-          <p
-            className={`mt-1 text-xs ${
-              i <= current ? "font-medium text-slate-900" : "text-slate-400"
-            }`}
-          >
-            {label}
-          </p>
-        </li>
-      ))}
-    </ol>
   );
 }
 

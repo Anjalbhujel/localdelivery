@@ -87,6 +87,10 @@ class DeliveryRequest(Base):
     drop_location: Mapped[str] = mapped_column(Text)
     package_details: Mapped[str] = mapped_column(Text)
     package_size: Mapped[str] = mapped_column(String(10), default="small")
+    package_weight_kg: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    pickup_contact_name: Mapped[str | None] = mapped_column(String(100))
+    drop_contact_name: Mapped[str | None] = mapped_column(String(100))
+    rider_payout: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     status: Mapped[DeliveryStatus] = mapped_column(
         ENUM(DeliveryStatus, name="delivery_status", create_type=False),
         default=DeliveryStatus.pending,

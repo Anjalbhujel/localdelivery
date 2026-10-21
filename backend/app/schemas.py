@@ -12,6 +12,9 @@ from pydantic import (
 )
 
 from .models import AccountStatus, DeliveryStatus, UserRole
+from .pricing import MAX_WEIGHT_KG
+
+PHONE_PATTERN = r"^[0-9+()\- ]{7,20}$"
 
 class UserCreate(BaseModel):
     full_name: str = Field(min_length=2, max_length=100)
@@ -66,17 +69,40 @@ class DeliveryCreate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     pickup_location: str = Field(min_length=3, max_length=500)
+    pickup_contact_name: str = Field(min_length=2, max_length=100)
     drop_location: str = Field(min_length=3, max_length=500)
-    package_details: str = Field(min_length=3, max_length=1000)
+    drop_contact_name: str = Field(min_length=2, max_length=100)
     package_size: Literal["small", "medium", "large"] = "small"
+    package_weight_kg: Decimal = Field(gt=0, max_digits=5, decimal_places=2)
+    package_details: str = Field(min_length=3, max_length=1000)
+    customer_phone: str | None = Field(default=None, pattern=PHONE_PATTERN)
 
+    @field_validator("customer_phone", mode="before")
+    @classmethod
+    def blank_phone_to_none(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            return v or None
+        return v
+
+    @model_validator(mode="after")
+    def weight_fits_size(self) -> Self:
+        limit = MAX_WEIGHT_KG[self.package_size]
+        if self.package_weight_kg > limit:
+            raise ValueError(
+                f"A {self.package_size} package can weigh up to {limit} kg"
+            )
+        return self
 
 class DeliveryOut(BaseModel):
     id: int
     pickup_location: str
+    pickup_contact_name: str | None = None
     drop_location: str
+    drop_contact_name: str | None = None
     package_details: str
     package_size: str
+    package_weight_kg: Decimal | None = None
     status: DeliveryStatus
     created_at: datetime
     price: Decimal
@@ -86,3 +112,10 @@ class DeliveryStats(BaseModel):
     on_the_way: int
     delivered: int
     total_spend: Decimal
+
+class QuoteOut(BaseModel):
+    base_fare: Decimal
+    size_surcharge: Decimal
+    service_fee: Decimal
+    total: Decimal
+    rider_payout: Decimal
