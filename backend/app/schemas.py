@@ -11,7 +11,7 @@ from pydantic import (
     model_validator,
 )
 
-from .models import AccountStatus, DeliveryStatus, UserRole
+from .models import AccountStatus, DeliveryStatus, RiderApprovalStatus, UserRole
 from .pricing import MAX_WEIGHT_KG
 
 PHONE_PATTERN = r"^[0-9+()\- ]{7,20}$"
@@ -119,3 +119,45 @@ class QuoteOut(BaseModel):
     service_fee: Decimal
     total: Decimal
     rider_payout: Decimal
+
+class BoardCard(BaseModel):
+    id: int
+    pickup_location: str
+    drop_location: str
+    package_details: str
+    package_size: str
+    package_weight_kg: Decimal | None = None
+    payout: Decimal
+    urgent: bool
+    created_at: datetime
+
+class RiderProfileOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    vehicle_type: str
+    address: str
+    approval_status: RiderApprovalStatus
+    rejection_reason: str | None = None
+
+class RiderStats(BaseModel):
+    total_earned: Decimal
+    earned_today: Decimal
+    completed: int
+    active: int
+
+class RiderDeliveryOut(BaseModel):
+    id: int
+    status: DeliveryStatus
+    pickup_location: str
+    pickup_contact_name: str | None = None
+    drop_location: str
+    drop_contact_name: str | None = None
+    package_details: str
+    package_size: str
+    package_weight_kg: Decimal | None = None
+    payout: Decimal | None = None
+    customer_name: str
+    customer_phone: str | None = None
+    created_at: datetime
+    accepted_at: datetime | None = None
+    picked_up_at: datetime | None = None
+    delivered_at: datetime | None = None

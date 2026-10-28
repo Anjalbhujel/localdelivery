@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import get_db
-from .routers import auth, deliveries
+from .routers import auth, deliveries, riders
 
 app = FastAPI(title="Local Delivery API")
 app.add_middleware(
@@ -16,7 +16,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(deliveries.router)
-
+app.include_router(riders.router)
 
 @app.get("/")
 def root():

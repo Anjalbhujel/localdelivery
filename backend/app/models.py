@@ -91,6 +91,9 @@ class DeliveryRequest(Base):
     pickup_contact_name: Mapped[str | None] = mapped_column(String(100))
     drop_contact_name: Mapped[str | None] = mapped_column(String(100))
     rider_payout: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime)
+    picked_up_at: Mapped[datetime | None] = mapped_column(DateTime)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime)
     status: Mapped[DeliveryStatus] = mapped_column(
         ENUM(DeliveryStatus, name="delivery_status", create_type=False),
         default=DeliveryStatus.pending,

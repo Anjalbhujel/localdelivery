@@ -6,10 +6,11 @@ import { useEffect, useState } from "react";
 import AppHeader from "../components/AppHeader";
 import DeliveryRow, { Delivery, OPEN_STATUSES } from "../components/DeliveryRow";
 import { cancelDeliveryRequest, fetchDeliveries } from "../lib/api";
+import RiderDeliveries from "./RiderDeliveries";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-type Me = { full_name: string; role: string };
+type Me = { full_name: string; phone: string | null; role: string };
 type Filter = "all" | "active" | "delivered" | "cancelled";
 
 const FILTERS: { value: Filter; label: string }[] = [
@@ -62,7 +63,7 @@ export default function MyDeliveriesPage() {
         return res.json();
       })
       .then((data: Me) => {
-        if (data.role !== "customer") {
+          if (data.role !== "customer" && data.role !== "rider") {
           router.replace("/dashboard");
           return;
         }
@@ -115,6 +116,10 @@ export default function MyDeliveriesPage() {
         <p className="text-sm text-slate-500">Loading...</p>
       </div>
     );
+  }
+
+  if (user.role === "rider") {
+    return <RiderDeliveries user={user} onSignOut={handleSignOut} />;
   }
 
   const all = deliveries ?? [];

@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import AppHeader from "../components/AppHeader";
+import RiderDashboard from "./RiderDashboard";
+import { StatCard, Svg } from "../components/StatCard";
 import DeliveryRow, { Delivery, OPEN_STATUSES } from "../components/DeliveryRow";
 import { cancelDeliveryRequest, fetchDeliveries } from "../lib/api";
 
@@ -94,6 +96,10 @@ export default function DashboardPage() {
         <p className="text-sm text-slate-500">Loading...</p>
       </div>
     );
+  }
+
+  if (user.role === "rider") {
+    return <RiderDashboard user={user} onSignOut={handleSignOut} />;
   }
 
   const firstName = user.full_name.trim().split(" ")[0];
@@ -303,45 +309,6 @@ export default function DashboardPage() {
           </aside>
         </div>
       </main>
-    </div>
-  );
-}
-
-function Svg({ children }: { children: ReactNode }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {children}
-    </svg>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  tone: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-      <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${tone}`}>
-        {icon}
-      </span>
-      <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
-      <p className="text-sm text-slate-500">{label}</p>
     </div>
   );
 }
